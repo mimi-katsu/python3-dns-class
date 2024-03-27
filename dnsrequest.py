@@ -1,6 +1,6 @@
 class DNSRequest:
     def __init__(self, data:bytes) -> object:
-
+        self.bytes_ = data
         self.header = None
         self.question = None
         self.answer = None
@@ -8,43 +8,44 @@ class DNSRequest:
         self.additional = None
         self.digest_bytes(data)
 
-    def digest_bytes(self, bytes):
-        header_bytes = bytes[:12]
-        self.header = self.Header(header_bytes)
-        self.question = self.Question(bytes)
+    def digest_bytes(self, bytes_):
+        self.header = self.Header(bytes_)
+        self.question = self.Question(bytes_)
 
     class Header:
-        def __init__(self, header_bytes):
-            self.id = int.from_bytes(header_bytes[:2], byteorder='big')            
-            self.qr = (header_bytes[2] >> 7) & 1
-            self.opcode = (header_bytes[2] >> 3) & 0b1111
-            self.aa = (header_bytes[2] >> 2) & 1
-            self.tc = (header_bytes[2] >> 1) & 1
-            self.rd = header_bytes[2] & 1
-            self.ra = (header_bytes[3] >> 7) & 1            
-            self.zero = (header_bytes[3] >> 4) & 0b111            
-            self.rcode = header_bytes[3] & 0b1111            
-            self.qdcount = int.from_bytes(header_bytes[4:6], byteorder='big')            
-            self.ancount = int.from_bytes(header_bytes[6:8], byteorder='big')            
-            self.nscount = int.from_bytes(header_bytes[8:10], byteorder='big')            
-            self.arcount = int.from_bytes(header_bytes[10:12], byteorder='big')
-
+        def __init__(self, bytes_):    
+            self.id = int.from_bytes(bytes_[:2], byteorder='big')            
+            self.qr = (bytes_[2] >> 7) & 1
+            self.opcode = (bytes_[2] >> 3) & 0b1111
+            self.aa = (bytes_[2] >> 2) & 1
+            self.tc = (bytes_[2] >> 1) & 1
+            self.rd = bytes_[2] & 1
+            self.ra = (bytes_[3] >> 7) & 1            
+            self.zero = (bytes_[3] >> 6) & 1
+            self.ad = (bytes_[3] >> 5) & 1
+            self.cd = (bytes_[3] >> 4) & 1
+            self.rcode = bytes_[3] & 0b1111           
+            self.qdcount = int.from_bytes(bytes_[4:6], byteorder='big')
+            self.ancount = int.from_bytes(bytes_[6:8], byteorder='big')            
+            self.nscount = int.from_bytes(bytes_[8:10], byteorder='big')            
+            self.arcount = int.from_bytes(bytes_[10:12], byteorder='big')
+    
     class Question:
-        def __init__(self, question_bytes):
-            self.qname = self.find_qname(question_bytes)
+        def __init__(self, bytes_):
+            self.qname = self.find_qname(bytes_)
             self.qclass = None
             self._qtype_offset = 0
-            self.qtype = question_bytes[self._qtype_offset:self._qtype_offset+2]
-            self.qclass = question_bytes[self._qtype_offset+2:self._qtype_offset+2]
+            self.qtype = bytes_[self._qtype_offset:self._qtype_offset+2]
+            self.qclass = bytes_[self._qtype_offset+2:self._qtype_offset+2]
             
-        def find_qname(self, bytes):
+        def find_qname(self, bytes_):
             offset = 13
             qname = []
             while True:
-                qlength  = bytes[offset - 1]
+                qlength  = bytes_[offset - 1]
                 if qlength == 0:
                     break
-                qname.append(f'{(bytes[offset:offset + qlength]).decode()}')
+                qname.append(f'{(bytes_[offset:offset + qlength]).decode()}')
                 offset = offset + qlength + 1
             self._qtype_offset = offset
             
@@ -52,7 +53,7 @@ class DNSRequest:
 
     class Answer:
         def __init__(self, answer_bits):
-            self.name = None
+            self.name = None 
             self.type_ = None
             self.class_ = None
             self.ttl = None
